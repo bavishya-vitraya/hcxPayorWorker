@@ -8,10 +8,12 @@ import com.google.gson.reflect.TypeToken;
 import hcxPayor.hcxpayorworker.dto.*;
 import hcxPayor.hcxpayorworker.dto.Procedure;
 import hcxPayor.hcxpayorworker.model.PreAuthRequest;
+import hcxPayor.hcxpayorworker.model.PreAuthResponse;
 import hcxPayor.hcxpayorworker.payorEnum.ClaimFlowType;
 import hcxPayor.hcxpayorworker.payorEnum.PolicyType;
 import hcxPayor.hcxpayorworker.payorEnum.VitrayaRoomCategory;
 import hcxPayor.hcxpayorworker.repository.PreAuthRequestRepo;
+import hcxPayor.hcxpayorworker.repository.PreAuthResponseRepo;
 import hcxPayor.hcxpayorworker.service.ListenerService;
 import hcxPayor.hcxpayorworker.utils.Constants;
 import hcxPayor.hcxpayorworker.utils.DateUtils;
@@ -43,6 +45,8 @@ public class ListenerServiceImpl implements ListenerService {
 
     @Autowired
     private PreAuthRequestRepo preAuthRequestRepo;
+    @Autowired
+    private PreAuthResponseRepo preAuthResponseRepo;
     @Override
     public boolean generateVhiRequest(Message msg) {
         PreAuthRequest preAuthRequest;
@@ -66,22 +70,31 @@ public class ListenerServiceImpl implements ListenerService {
 
     @Override
     public void generateHcxResponse(Message msg) throws Exception {
-        PreAuthVhiResponse vhiResponse = new PreAuthVhiResponse();
-        FileDTO file= new FileDTO();
-        file.setName("GAL_PreauthInitialApprovalLetter_CLMG_2023_161200_1017744_1667392133684.pdf");
-        file.setDocId("117833144");
-        List<FileDTO> fileDTOList= new ArrayList<>();
-        fileDTOList.add(file);
-
-        // claim response will come from payor connector apis - hard coded for now
-        vhiResponse.setClaimNumber("CIR/2023/161200/1019485");
-        vhiResponse.setClaimStatus(PreAuthVhiResponse.AdjudicationClaimStatus.APPROVED);
-        vhiResponse.setClaimStatusInString("Approved");
-        vhiResponse.setQuery("SUB-LIMIT APPLICABLE.\\n\\nPlease send us indoor case sheets, investigation reports, OT notes, post OP X-Ray images, implant invoices if applicable, discharge summary,  final bill with break up and other related documents.");
-        vhiResponse.setFiles(fileDTOList);
-        vhiResponse.setApprovedAmount(BigDecimal.valueOf(20000));
-
-
+        String responseType = msg.getMessageType();
+        try {
+            if (responseType.equalsIgnoreCase(Constants.PRE_AUTH_RESPONSE)) {
+                PreAuthResponse preAuthResponse = preAuthResponseRepo.findPreAuthResponseById(msg.getReferenceId());
+                String responseFhirpayload = buildFhirClaimResponse(preAuthResponse.getPreAuthVhiResponse());
+                HCXIntegrator.init(setPayorConfig());
+                HCXOutgoingRequest hcxOutgoingRequest = new HCXOutgoingRequest();
+                Map<String,Object> output = new HashMap<>();
+                Operations operation = Operations.PRE_AUTH_ON_SUBMIT;
+                String status = "response.partial";
+                String actionJwe = preAuthResponse.getInputFhirRequest();
+                Boolean res = hcxOutgoingRequest.generate(responseFhirpayload,operation,actionJwe,status,output);
+                System.out.println("{}"+res+output);
+                if (res) {
+                    preAuthResponse.setOutputFhirResponse((String) output.get("payload"));
+                    preAuthResponseRepo.save(preAuthResponse);
+                }
+            }
+        }
+        catch(Exception e){
+            log.error("Error in generating fhir pre Auth response", e);
+        }
+    }
+    public String buildFhirClaimResponse(PreAuthVhiResponse vhiResponse) throws Exception {
+        log.info("vhiResponse:{}",vhiResponse);
         AttachmentResDTO attachmentResDTO = new AttachmentResDTO();
         attachmentResDTO.setQuery(vhiResponse.getQuery());
         attachmentResDTO.setFiles(vhiResponse.getFiles());
@@ -150,22 +163,13 @@ public class ListenerServiceImpl implements ListenerService {
 
         IParser p = fhirctx.newJsonParser().setPrettyPrint(true);
         String messageString = p.encodeResourceToString(bundle);
-        System.out.println("here is the json " + messageString);
-
-        HCXIntegrator.init(setPayorConfig());
-        HCXOutgoingRequest hcxOutgoingRequest = new HCXOutgoingRequest();
-        Map<String,Object> output = new HashMap<>();
-        Operations operation = Operations.PRE_AUTH_ON_SUBMIT;
-        File actionJweFile = new ClassPathResource("input/jweResponse").getFile();
-        String actionJwe = FileUtils.readFileToString(actionJweFile);
-        String status = "response.partial";
-        Boolean res = hcxOutgoingRequest.generate(messageString,operation,actionJwe,status,output);
-        System.out.println("{}"+res+output);
+        System.out.println("Generated Fhir PreAuth Response" + messageString);
+        return messageString;
     }
 
     public  Map<String, Object> setPayorConfig() throws IOException {
         Map<String, Object> config = new HashMap<>();
-        File file = new ClassPathResource("keys/vitraya-mock-payor-private-key.pem").getFile();;
+        File file = new ClassPathResource("keys/vitraya-mock-payor-private-key.pem").getFile();
         String privateKey= FileUtils.readFileToString(file);
         config.put("protocolBasePath", "http://staging-hcx.swasth.app/api/v0.7");
         config.put("authBasePath","http://a9dd63de91ee94d59847a1225da8b111-273954130.ap-south-1.elb.amazonaws.com:8080/auth/realms/swasth-health-claim-exchange/protocol/openid-connect/token");
