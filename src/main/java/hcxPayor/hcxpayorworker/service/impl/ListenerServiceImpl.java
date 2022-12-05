@@ -54,7 +54,7 @@ public class ListenerServiceImpl implements ListenerService {
                 preAuthRequest = preAuthRequestRepo.findPreAuthRequestById(msg.getReferenceId());
                 vhiPreAuthRequest=buildVhiPreAuthRequest(preAuthRequest.getPreAuthRequest());
                 log.info("PreAuthReq:{}", preAuthRequest);
-                log.info("vhiPreAuthRequest{}", vhiPreAuthRequest);
+                log.info("vhiPreAuthRequest{}",new Gson().toJson(vhiPreAuthRequest));
             }
             catch(Exception e){
                 log.error("error in fetching preAuth request", e);
@@ -179,20 +179,10 @@ public class ListenerServiceImpl implements ListenerService {
 
     @Override
     public  VhiPreAuthRequest buildVhiPreAuthRequest(String request) throws Exception {
-        Operations operation = Operations.PRE_AUTH_SUBMIT;
-        HCXIntegrator.init(setPayorConfig());
-        Map<String,Object> output = new HashMap<>();
-        Map<String,Object> input = new HashMap<>();
-        input.put("payload",request);
-        HCXIncomingRequest hcxIncomingRequest = new HCXIncomingRequest();
-        hcxIncomingRequest.process(JSONUtils.serialize(input),operation,output);
-        log.info("Incoming Request: {}",output);
-        String fhirPayload = (String) output.get("fhirPayload");
-
         VhiPreAuthRequest vhiPreAuthRequest=new VhiPreAuthRequest();
         FhirContext fhirctx = FhirContext.forR4();
         IParser parser = fhirctx.newJsonParser().setPrettyPrint(true);
-        Bundle bundle = parser.parseResource(Bundle.class, fhirPayload);
+        Bundle bundle = parser.parseResource(Bundle.class, request);
         org.hl7.fhir.r4.model.Claim claim;
         hcxPayor.hcxpayorworker.dto.Claim vhiClaim= new hcxPayor.hcxpayorworker.dto.Claim();
         ClaimIllnessTreatmentDetails claimIllnessTreatmentDetails= new ClaimIllnessTreatmentDetails();
@@ -386,7 +376,7 @@ public class ListenerServiceImpl implements ListenerService {
         vhiPreAuthRequest.setProcedure(vhiProcedure);
         vhiPreAuthRequest.setProcedureMethod(procedureMethod);
         vhiPreAuthRequest.setIllness(illness);
-        log.info("vhiPreAuthRequest{}",new Gson().toJson(vhiPreAuthRequest));
+
         return  vhiPreAuthRequest;
     }
 
