@@ -221,7 +221,9 @@ public class ListenerServiceImpl implements ListenerService {
                             claimAdmissionDetails.setIcuStay(supportingInfo.getValueBooleanType().booleanValue());
                         }
                         else if(coding.getCode().equalsIgnoreCase("ONS-1")){
-                            claimAdmissionDetails.setAdmissionDate(DateUtils.formatDate(supportingInfo.getTimingDateType().getValue()));
+                            //claimAdmissionDetails.setAdmissionDate(DateUtils.formatDate(supportingInfo.getTimingDateType().getValue()));
+                            claimAdmissionDetails.setAdmissionDate(DateUtils.formatDate(supportingInfo.getTimingPeriod().getStart()));
+                            claimAdmissionDetails.setDischargeDate(DateUtils.formatDate(supportingInfo.getTimingPeriod().getEnd()));
                         }
                         else if(coding.getCode().equalsIgnoreCase("ONS-2")){
                             claimAdmissionDetails.setDischargeDate(DateUtils.formatDate(supportingInfo.getTimingDateType().getValue()));
