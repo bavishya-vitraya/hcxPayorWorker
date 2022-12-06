@@ -11,7 +11,7 @@ import java.util.Date;
 @NoArgsConstructor
 public class ChronicIllnessDTO {
     private int illnessId;
-    private Date diagnosisDate;
+    private String diagnosisDate;
     private int numberOfMonths;
     private String illnessName;
     private String illnessIcdCode;

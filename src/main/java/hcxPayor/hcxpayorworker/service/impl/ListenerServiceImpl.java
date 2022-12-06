@@ -245,7 +245,7 @@ public class ListenerServiceImpl implements ListenerService {
                             vhiClaim.setPolicyInceptionDate(attachmentDTO.getPolicyInceptionDate());
 
                             claimIllnessTreatmentDetails.setClaimId(attachmentDTO.getParentTableId());
-                            claimIllnessTreatmentDetails.setChronicIllnessDetails(attachmentDTO.getChronicIllnessDetailsJSON().getChronicIllnessList().toString());
+                            claimIllnessTreatmentDetails.setChronicIllnessDetails(new Gson().toJson(attachmentDTO.getChronicIllnessDetailsJSON()));
                             claimIllnessTreatmentDetails.setProcedureCorporateMappingId(attachmentDTO.getProcedureCorporateMappingId());
                             claimIllnessTreatmentDetails.setProcedureId(attachmentDTO.getProcedureId());
                             claimIllnessTreatmentDetails.setLeftImplant(attachmentDTO.getLeftImplant());
