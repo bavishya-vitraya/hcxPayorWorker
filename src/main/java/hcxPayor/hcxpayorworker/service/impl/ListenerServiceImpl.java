@@ -17,10 +17,8 @@ import hcxPayor.hcxpayorworker.repository.PreAuthResponseRepo;
 import hcxPayor.hcxpayorworker.service.ListenerService;
 import hcxPayor.hcxpayorworker.utils.Constants;
 import hcxPayor.hcxpayorworker.utils.DateUtils;
-import io.hcxprotocol.impl.HCXIncomingRequest;
 import io.hcxprotocol.impl.HCXOutgoingRequest;
 import io.hcxprotocol.init.HCXIntegrator;
-import io.hcxprotocol.utils.JSONUtils;
 import io.hcxprotocol.utils.Operations;
 import lombok.extern.slf4j.Slf4j;
 
@@ -36,7 +34,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 
 @Slf4j
@@ -56,7 +53,11 @@ public class ListenerServiceImpl implements ListenerService {
 
             try {
                 preAuthRequest = preAuthRequestRepo.findPreAuthRequestById(msg.getReferenceId());
-                vhiPreAuthRequest=buildVhiPreAuthRequest(preAuthRequest.getPreAuthRequest());
+                vhiPreAuthRequest=buildVhiPreAuthRequest(preAuthRequest.getFhirPayload());
+                Long claimId = vhiPreAuthRequest.getClaim().getId();
+                preAuthRequest.setPreAuthRequestId(String.valueOf(claimId));
+                preAuthRequest.setPreAuthRequest(new Gson().toJson(vhiPreAuthRequest));
+                preAuthRequestRepo.save(preAuthRequest);
                 log.info("PreAuthReq:{}", preAuthRequest);
                 log.info("vhiPreAuthRequest{}",new Gson().toJson(vhiPreAuthRequest));
             }
@@ -120,7 +121,7 @@ public class ListenerServiceImpl implements ListenerService {
         claimRequest.setPatient(new Reference(patient.getId()));
         claimRequest.setProvider(new Reference(organization.getId()));
         claimRequest.addInsurance().setSequence(1).setFocal(true).setCoverage(new Reference("Coverage/1"));
-
+        claimRequest.addIdentifier().setSystem("https://www.tmh.in/hcx-documents").setValue(String.valueOf(vhiResponse.getHospitalReferenceId()));
 
         ClaimResponse claimResponse = new ClaimResponse();
         claimResponse.setId("ClaimResponse/1");

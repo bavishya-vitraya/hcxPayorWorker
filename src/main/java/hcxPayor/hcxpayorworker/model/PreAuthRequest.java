@@ -14,5 +14,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class PreAuthRequest {
     @Id
     private String id;
+    private String requestObject;
+    private String fhirPayload;
     private String preAuthRequest;
+    private String preAuthRequestId;
 }
