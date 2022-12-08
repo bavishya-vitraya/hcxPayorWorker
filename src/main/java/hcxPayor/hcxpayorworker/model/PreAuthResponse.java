@@ -18,6 +18,6 @@ public class PreAuthResponse {
     private String insurerCode;
     private String responseType;
     private PreAuthVhiResponse preAuthVhiResponse;
-    private String inputFhirRequest;
+    private String correlationId;
     private String outputFhirResponse;
 }

@@ -18,4 +18,5 @@ public class PreAuthRequest {
     private String fhirPayload;
     private String preAuthRequest;
     private String preAuthRequestId;
+    private String correlationId;
 }

@@ -75,13 +75,14 @@ public class ListenerServiceImpl implements ListenerService {
         try {
             if (responseType.equalsIgnoreCase(Constants.PRE_AUTH_RESPONSE)) {
                 PreAuthResponse preAuthResponse = preAuthResponseRepo.findPreAuthResponseById(msg.getReferenceId());
+                PreAuthRequest preAuthRequest = preAuthRequestRepo.findPreAuthRequestByCorrelationId(preAuthResponse.getCorrelationId());
                 String responseFhirpayload = buildFhirClaimResponse(preAuthResponse.getPreAuthVhiResponse());
                 HCXIntegrator.init(setPayorConfig());
                 HCXOutgoingRequest hcxOutgoingRequest = new HCXOutgoingRequest();
                 Map<String,Object> output = new HashMap<>();
                 Operations operation = Operations.PRE_AUTH_ON_SUBMIT;
                 String status = "response.partial";
-                String actionJwe = preAuthResponse.getInputFhirRequest();
+                String actionJwe = preAuthRequest.getRequestObject();
                 Boolean res = hcxOutgoingRequest.generate(responseFhirpayload,operation,actionJwe,status,output);
                 System.out.println("{}"+res+output);
                 if (res) {
