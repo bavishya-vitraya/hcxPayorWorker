@@ -72,10 +72,17 @@ public class ListenerServiceImpl implements ListenerService {
     @Override
     public void generateHcxResponse(Message msg) throws Exception {
         String responseType = msg.getMessageType();
+        PreAuthResponse preAuthResponse=null;
+        PreAuthRequest preAuthRequest=null;
         try {
             if (responseType.equalsIgnoreCase(Constants.PRE_AUTH_RESPONSE)) {
-                PreAuthResponse preAuthResponse = preAuthResponseRepo.findPreAuthResponseById(msg.getReferenceId());
-                PreAuthRequest preAuthRequest = preAuthRequestRepo.findPreAuthRequestByCorrelationId(preAuthResponse.getCorrelationId());
+                try {
+                     preAuthResponse = preAuthResponseRepo.findPreAuthResponseById(msg.getReferenceId());
+                     preAuthRequest = preAuthRequestRepo.findPreAuthRequestByCorrelationId(preAuthResponse.getCorrelationId());
+                }
+                catch(Exception e){
+                    log.error("error in fetching data", e);
+                }
                 String responseFhirpayload = buildFhirClaimResponse(preAuthResponse.getPreAuthVhiResponse());
                 HCXIntegrator.init(setPayorConfig());
                 HCXOutgoingRequest hcxOutgoingRequest = new HCXOutgoingRequest();
