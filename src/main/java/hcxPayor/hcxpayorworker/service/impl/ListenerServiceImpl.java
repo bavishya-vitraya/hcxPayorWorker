@@ -33,9 +33,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -197,15 +197,21 @@ public class ListenerServiceImpl implements ListenerService {
 
     public  Map<String, Object> setPayorConfig() throws IOException {
         Map<String, Object> config = new HashMap<>();
-        File file = new ClassPathResource("keys/vitraya-mock-payor-private-key.pem").getFile();
-        String privateKey= FileUtils.readFileToString(file);
-        config.put("protocolBasePath", protocolBasePath);
-        config.put("authBasePath", authBasePath);
-        config.put("participantCode",participantCode);
-        config.put("username", username);
-        config.put("password",password);
-        config.put("encryptionPrivateKey", privateKey);
-        config.put("igUrl", igUrl);
+        try (InputStream inputStream = getClass().getResourceAsStream("/keys/vitraya-mock-payor-private-key.pem");
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String privateKey = reader.lines()
+                    .collect(Collectors.joining(System.lineSeparator()));
+            config.put("protocolBasePath", protocolBasePath);
+            config.put("authBasePath", authBasePath);
+            config.put("participantCode", participantCode);
+            config.put("username", username);
+            config.put("password", password);
+            config.put("encryptionPrivateKey", privateKey);
+            config.put("igUrl", igUrl);
+        }
+        catch(Exception e){
+            log.error(e.getMessage());
+        }
         return config;
     }
 

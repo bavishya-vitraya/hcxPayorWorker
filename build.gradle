@@ -25,6 +25,14 @@ dependencies {
 	testImplementation 'org.springframework.amqp:spring-rabbit-test'
 }
 
+sourceSets {
+	main {
+		resources {
+			srcDirs "src/main/resources"
+		}
+	}
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
