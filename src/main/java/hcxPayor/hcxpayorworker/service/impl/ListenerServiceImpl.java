@@ -110,7 +110,8 @@ public class ListenerServiceImpl implements ListenerService {
                 String status = "response.partial";
                 String actionJwe = preAuthRequest.getRequestObject();
                 Boolean res = hcxOutgoingRequest.generate(responseFhirpayload,operation,actionJwe,status,output);
-                System.out.println("{}"+res+output);
+                log.info("response{}",res);
+                log.info("output{}",output);
                 if (res) {
                     preAuthResponse.setOutputFhirResponse((String) output.get("payload"));
                     preAuthResponseRepo.save(preAuthResponse);
